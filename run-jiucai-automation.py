@@ -20,7 +20,7 @@ os.environ['SHELL'] = '/bin/bash'
 
 # 配置变量
 WORK_DIR = "/Users/yanggenxing/Documents/Obsidian Vault"
-REPORT_DIR = os.path.join(WORK_DIR, "DiaryFinance", "韭菜公社新闻")
+REPORT_DIR = os.path.join(os.path.expanduser("~"), "DiaryFinance", "韭菜公社新闻")
 CLAUDE_PATH = "/Users/yanggenxing/.claude/local/claude"
 LOG_DIR = "/Users/yanggenxing/.claude/scripts/logs"
 EMAIL_TO = "modeyangg@gmail.com"
@@ -61,7 +61,7 @@ def find_latest_report():
         return pattern
 
 def run_jiucai_s():
-    """执行jiucai-s命令"""
+    """执行jiucai-s命令，失败时使用直接抓取脚本"""
     log("开始执行jiucai-s命令...")
     log(f"当前工作目录: {os.getcwd()}")
     log(f"目标工作目录: {WORK_DIR}")
@@ -102,24 +102,64 @@ def run_jiucai_s():
 
         if result.returncode == 0:
             log("✓ jiucai-s命令执行成功")
-            return True
+            # 检查是否真的生成了报告文件
+            latest_report = find_latest_report()
+            if latest_report and "2025-12-17" in latest_report:
+                log(f"✓ 检测到报告文件已生成: {os.path.basename(latest_report)}")
+                return True
+            else:
+                log("⚠️ claude命令执行成功但未找到今日报告，尝试直接抓取...")
+                return run_direct_fetch()
         else:
-            log(f"✗ jiucai-s命令执行失败")
-            return False
+            log(f"✗ jiucai-s命令执行失败，尝试直接抓取...")
+            return run_direct_fetch()
 
     except subprocess.TimeoutExpired:
-        log("⚠️ jiucai-s命令执行超时，但检查是否已生成文件...")
+        log("⚠️ jiucai-s命令执行超时，检查是否已生成文件...")
         # 即使超时也可能已经生成了文件，检查一下
         latest_report = find_latest_report()
-        if latest_report:
+        if latest_report and "2025-12-17" in latest_report:
             log(f"✓ 检测到报告文件已生成: {os.path.basename(latest_report)}")
             log("✓ 任务实际已成功完成")
             return True
         else:
-            log("✗ 命令超时且未找到生成的报告文件")
-            return False
+            log("✗ 命令超时且未找到生成的报告文件，尝试直接抓取...")
+            return run_direct_fetch()
     except Exception as e:
         log(f"✗ 执行jiucai-s时发生错误: {e}")
+        log("尝试使用直接抓取...")
+        return run_direct_fetch()
+
+def run_direct_fetch():
+    """执行直接抓取脚本"""
+    log("开始执行直接抓取脚本...")
+
+    script_path = "/Users/yanggenxing/.claude/scripts/jiucai-direct-fetch.py"
+
+    try:
+        log("正在运行直接抓取脚本...")
+        result = subprocess.run(
+            ["python3", script_path],
+            capture_output=True,
+            text=True,
+            timeout=300  # 5分钟超时
+        )
+
+        log(f"直接抓取返回码: {result.returncode}")
+        if result.stdout:
+            log(f"直接抓取输出: {result.stdout}")
+        if result.stderr:
+            log(f"直接抓取错误: {result.stderr}")
+
+        if result.returncode == 0:
+            log("✓ 直接抓取执行成功")
+            return True
+        else:
+            log("✗ 直接抓取执行失败")
+            return False
+
+    except Exception as e:
+        log(f"✗ 执行直接抓取时发生错误: {e}")
         import traceback
         log(f"详细错误: {traceback.format_exc()}")
         return False

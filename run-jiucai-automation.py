@@ -20,7 +20,7 @@ os.environ['SHELL'] = '/bin/bash'
 
 # 配置变量
 WORK_DIR = "/Users/yanggenxing/Documents/Obsidian Vault"
-REPORT_DIR = os.path.join(os.path.expanduser("~"), "DiaryFinance", "韭菜公社新闻")
+REPORT_DIR = os.path.join(WORK_DIR, "DiaryFinance", "韭菜公社新闻")
 CLAUDE_PATH = "/Users/yanggenxing/.claude/local/claude"
 LOG_DIR = "/Users/yanggenxing/.claude/scripts/logs"
 EMAIL_TO = "modeyangg@gmail.com"
